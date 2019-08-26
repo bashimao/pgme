@@ -54,8 +54,30 @@ func healthz(w http.ResponseWriter, _ *http.Request) {
 func home(w http.ResponseWriter, r *http.Request) {
 
 	metricList := []string {
-		"temperature.gpu", "utilization.gpu",
-		"utilization.memory", "memory.total", "memory.free", "memory.used"}
+		"gpu.power.state",
+		"gpu.power.draw",
+		"gpu.power.limit",
+
+		"gpu.clock.shader.current",
+		"gpu.clock.shader.maximum",
+		"gpu.clock.streaming_multiprocessor.current",
+		"gpu.clock.streaming_multiprocessor.maximum",
+		"gpu.clock.memory.current",
+		"gpu.clock.memory.maximum",
+		
+		"gpu.temperature.processor",
+		"gpu.temperature.memory",
+		"gpu.throttle_reason",
+
+		"gpu.utilization.processor",
+		"gpu.utilization.memory",
+		"gpu.utilization.fan",
+
+		"gpu.memory.ecc_mode",
+		"gpu.memory.free",
+		"gpu.memory.used",
+		"gpu.memory.total",
+	}
 
 	verInfo := make(map[string]string)
 	verInfo["Buildtime"] = BuildTime
@@ -86,7 +108,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 func metrics(response http.ResponseWriter, request *http.Request) {
     out, err := exec.Command(
-        "nvidia-smi",
+	"nvidia-smi",
         "--query-gpu=name,index,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.free,memory.used",
         "--format=csv,noheader,nounits").Output()
 
