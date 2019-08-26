@@ -11,106 +11,108 @@ import (
     "os"
     "os/exec"
     "strings"
-	"syscall"
-	"os/signal"
-	"path"
+    "syscall"
+    "os/signal"
+    "path"
 )
 
 
 type PageVariables struct {
-	PageTitle        string
-	Metrics			 []string
-	VersionInfo      map[string]string
+    PageTitle   string
+    Metrics     []string
+    VersionInfo map[string]string
 }
 
 
 var (
-	// BuildTime is a time label of the moment when the binary was built
-	BuildTime = "unset"
-	// Commit is a last commit hash at the moment when the binary was built
-	Commit = "unset"
-	// Release is a semantic version of current build
-	Release = "unset"
+    // BuildTime is a time label of the moment when the binary was built
+    BuildTime = "unset"
+    // Commit is a last commit hash at the moment when the binary was built
+    Commit = "unset"
+    // Release is a semantic version of current build
+    Release = "unset"
 )
 
-func getEnv(key, fallback string) string {
-	value := os.Getenv(key)
-	if len(value) == 0 {
-		return fallback
-	}
 
-	return value
+func getEnv(key, fallback string) string {
+    value := os.Getenv(key)
+    if len(value) == 0 {
+        return fallback
+    }
+
+    return value
 }
 
 
 // healthz is a liveness probe.
 func healthz(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
+    w.WriteHeader(http.StatusOK)
 }
 
 
 // name, index, temperature.gpu, utilization.gpu,
 // utilization.memory, memory.total, memory.free, memory.used
 func home(w http.ResponseWriter, r *http.Request) {
+    metricList := []string {
+        "gpu.power.state",
+        "gpu.power.draw",
+        "gpu.power.limit",
 
-	metricList := []string {
-		"gpu.power.state",
-		"gpu.power.draw",
-		"gpu.power.limit",
+        "gpu.clock.shader.current",
+        "gpu.clock.shader.maximum",
+        "gpu.clock.streaming_multiprocessor.current",
+        "gpu.clock.streaming_multiprocessor.maximum",
+        "gpu.clock.memory.current",
+        "gpu.clock.memory.maximum",
 
-		"gpu.clock.shader.current",
-		"gpu.clock.shader.maximum",
-		"gpu.clock.streaming_multiprocessor.current",
-		"gpu.clock.streaming_multiprocessor.maximum",
-		"gpu.clock.memory.current",
-		"gpu.clock.memory.maximum",
-		
-		"gpu.temperature.processor",
-		"gpu.temperature.memory",
-		"gpu.throttle_reason",
+        "gpu.temperature.processor",
+        "gpu.temperature.memory",
+        "gpu.throttle_reason",
 
-		"gpu.utilization.processor",
-		"gpu.utilization.memory",
-		"gpu.utilization.fan",
+        "gpu.utilization.processor",
+        "gpu.utilization.memory",
+        "gpu.utilization.fan",
 
-		"gpu.memory.ecc_mode",
-		"gpu.memory.free",
-		"gpu.memory.used",
-		"gpu.memory.total",
-	}
+        "gpu.memory.ecc_mode",
+        "gpu.memory.free",
+        "gpu.memory.used",
+        "gpu.memory.total",
+    }
 
-	verInfo := make(map[string]string)
-	verInfo["Buildtime"] = BuildTime
-	verInfo["Commit"] = Commit
-	verInfo["Release"] = Release
+    verInfo := make(map[string]string)
+    verInfo["Buildtime"] = BuildTime
+    verInfo["Commit"] = Commit
+    verInfo["Release"] = Release
 
 
-	pv := PageVariables{
-		PageTitle:   "Prometheus nVidia GPU Metrics Exporter",
-		Metrics:     metricList,
-		VersionInfo: verInfo,
-	}
+    pv := PageVariables{
+        PageTitle:   "Prometheus nVidia GPU Metrics Exporter",
+        Metrics:     metricList,
+        VersionInfo: verInfo,
+    }
 
-	filepath := path.Join(path.Dir("./template/home.html"), "home.html")
-	template.ParseFiles()
-	t, err := template.ParseFiles(filepath)
-	if err != nil {
-		log.Print("Template parsing error: ", err)
-	}
+    filepath := path.Join(path.Dir("./template/home.html"), "home.html")
+    template.ParseFiles()
+    t, err := template.ParseFiles(filepath)
+    if err != nil {
+        log.Print("Template parsing error: ", err)
+    }
 
-	err = t.Execute(w, pv)
-	if err != nil {
-		log.Print("Template execution error: ", err)
-	}
-
+    err = t.Execute(w, pv)
+    if err != nil {
+        log.Print("Template execution error: ", err)
+    }
 }
 
 
 func metrics(response http.ResponseWriter, request *http.Request) {
     out, err := exec.Command(
-	"nvidia-smi",
-        "--query-gpu=name,index,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.free,memory.used",
-        "--format=csv,noheader,nounits").Output()
+        "nvidia-smi",
+        //                      power                         clock                                                                     temperature                        throttle                       utilization                                  memory
+	//                      0      1          2           0         1             2         3             4          5              0               1                  0                              0               1                  3         0                1           2           3
+        "--query-gpu=name,index,pstate,power.draw,power.limit,clocks.gr,clocks.max.gr,clocks.sm,clocks.max.sm,clocks.mem,clocks.max.mem,temperature.gpu,temperature.memory,clocks_throttle_reasons.active,utilization.gpu,utilization.memory,fan.speed,ecc.mode.current,memory.free,memory.used,memory.total",
+        "--format=csv,noheader,nounits"
+    ).Output()
 
     if err != nil {
         log.Printf("ERROR: %s\n", err)
@@ -127,8 +129,30 @@ func metrics(response http.ResponseWriter, request *http.Request) {
     }
 
     metricList := []string {
-        "temperature.gpu", "utilization.gpu",
-        "utilization.memory", "memory.total", "memory.free", "memory.used"}
+        "gpu.power.state",
+        "gpu.power.draw",
+        "gpu.power.limit",
+
+        "gpu.clock.shader.current",
+        "gpu.clock.shader.maximum",
+        "gpu.clock.streaming_multiprocessor.current",
+        "gpu.clock.streaming_multiprocessor.maximum",
+        "gpu.clock.memory.current",
+        "gpu.clock.memory.maximum",
+        
+        "gpu.temperature.processor",
+        "gpu.temperature.memory",
+        "gpu.throttle_reason",
+
+        "gpu.utilization.processor",
+        "gpu.utilization.memory",
+        "gpu.utilization.fan",
+
+        "gpu.memory.ecc_mode",
+        "gpu.memory.free",
+        "gpu.memory.used",
+        "gpu.memory.total",
+    }
 
     result := ""
     for _, row := range records {
@@ -149,40 +173,36 @@ func main() {
 
     log.Print("- PORT set to "+ port +".  If  environment variable PORT is not set the default is 9101")
 
+    interrupt := make(chan os.Signal, 1)
+    signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+    srv := &http.Server{
+        Addr: addr,
+    }
 
+    go func() {
+        http.HandleFunc("/", home)
+        http.HandleFunc("/healthz", healthz)
+        http.HandleFunc("/metrics/", metrics)
+        err := srv.ListenAndServe()
 
-	srv := &http.Server{
-		Addr: addr,
-	}
+        if err != nil {
+            log.Fatal(err)
+        }
 
-	go func() {
-		http.HandleFunc("/", home)
-		http.HandleFunc("/healthz", healthz)
-		http.HandleFunc("/metrics/", metrics)
-		err := srv.ListenAndServe()
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-	}()
+    }()
 
     log.Print("The service is listening on ", port)
 
-	killSignal := <-interrupt
-	switch killSignal {
-	case os.Interrupt:
-		log.Print("Got SIGINT...")
-	case syscall.SIGTERM:
-		log.Print("Got SIGTERM...")
-	}
+    killSignal := <-interrupt
+    switch killSignal {
+    case os.Interrupt:
+        log.Print("Got SIGINT...")
+    case syscall.SIGTERM:
+        log.Print("Got SIGTERM...")
+    }
 
-	log.Print("The service is shutting down...")
-	srv.Shutdown(context.Background())
-	log.Print("Done")
-
-
+    log.Print("The service is shutting down...")
+    srv.Shutdown(context.Background())
+    log.Print("Done")
 }
