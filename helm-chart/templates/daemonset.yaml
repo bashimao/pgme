@@ -16,18 +16,17 @@ spec:
             labels:
                 app: {{ template "pgme.name" . }}
                 release: {{ .Release.Name }}
+            annotations:
+                prometheus.io/scrape: "true"
+                prometheus.io/port: "{{ .Values.port }}"
         spec:
             hostNetwork: true
-            hostPID: true
-            volumes:
-            - name: device-plugins
-              hostPath:
-                path: /var/lib/kubelet/device-plugins
             containers:
                 - name: {{ .Chart.Name }}
-                  image: {{ template "imageURI" . }}
+                  image: {{ .Values.image.name }}
                   imagePullPolicy: {{ .Values.image.pullPolicy }}
-                  securityContext:
-                    privileged: true
+                  env:
+                  - name: PORT
+                    value: "{{ .Values.port }}"
                   command: ["./pgme"]
 
