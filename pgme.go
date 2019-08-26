@@ -109,9 +109,9 @@ func metrics(response http.ResponseWriter, request *http.Request) {
     out, err := exec.Command(
         "nvidia-smi",
         //                      power                         clock                                                                     temperature                        throttle                       utilization                                  memory
-	//                      0      1          2           0         1             2         3             4          5              0               1                  0                              0               1                  3         0                1           2           3
+        //                      0      1          2           0         1             2         3             4          5              0               1                  0                              0               1                  3         0                1           2           3
         "--query-gpu=name,index,pstate,power.draw,power.limit,clocks.gr,clocks.max.gr,clocks.sm,clocks.max.sm,clocks.mem,clocks.max.mem,temperature.gpu,temperature.memory,clocks_throttle_reasons.active,utilization.gpu,utilization.memory,fan.speed,ecc.mode.current,memory.free,memory.used,memory.total",
-        "--format=csv,noheader,nounits"
+        "--format=csv,noheader,nounits",
     ).Output()
 
     if err != nil {
