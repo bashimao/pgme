@@ -66,30 +66,33 @@ nvidia-docker run -p 9101:9101 chhibber/pgme:2017.01
 
 ### Available Metrics - http://localhost:9101/metrics
 ```
-temperature_gpu{gpu="TITAN X (Pascal)[0]"} 41
-utilization_gpu{gpu="TITAN X (Pascal)[0]"} 0
-utilization_memory{gpu="TITAN X (Pascal)[0]"} 0
-memory_total{gpu="TITAN X (Pascal)[0]"} 12189
-memory_free{gpu="TITAN X (Pascal)[0]"} 12189
-memory_used{gpu="TITAN X (Pascal)[0]"} 0
-temperature_gpu{gpu="TITAN X (Pascal)[1]"} 78
-utilization_gpu{gpu="TITAN X (Pascal)[1]"} 95
-utilization_memory{gpu="TITAN X (Pascal)[1]"} 59
-memory_total{gpu="TITAN X (Pascal)[1]"} 12189
-memory_free{gpu="TITAN X (Pascal)[1]"} 1738
-memory_used{gpu="TITAN X (Pascal)[1]"} 10451
-temperature_gpu{gpu="TITAN X (Pascal)[2]"} 83
-utilization_gpu{gpu="TITAN X (Pascal)[2]"} 99
-utilization_memory{gpu="TITAN X (Pascal)[2]"} 82
-memory_total{gpu="TITAN X (Pascal)[2]"} 12189
-memory_free{gpu="TITAN X (Pascal)[2]"} 190
-memory_used{gpu="TITAN X (Pascal)[2]"} 11999
-temperature_gpu{gpu="TITAN X (Pascal)[3]"} 84
-utilization_gpu{gpu="TITAN X (Pascal)[3]"} 97
-utilization_memory{gpu="TITAN X (Pascal)[3]"} 76
-memory_total{gpu="TITAN X (Pascal)[3]"} 12189
-memory_free{gpu="TITAN X (Pascal)[3]"} 536
-memory_used{gpu="TITAN X (Pascal)[3]"} 11653
+Per node:
+---------
+"gpu_count"
+
+Per GPU:
+--------
+"gpu_power_draw"
+"gpu_power_limit"
+
+"gpu_clock_shader_current"
+"gpu_clock_shader_maximum"
+"gpu_clock_streaming_multiprocessor_current"
+"gpu_clock_streaming_multiprocessor_maximum"
+"gpu_clock_memory_current"
+"gpu_clock_memory_maximum"
+
+"gpu_temperature_processor"
+"gpu_temperature_memory"
+
+"gpu_utilization_processor"
+"gpu_utilization_memory"
+"gpu_utilization_fan"
+
+"gpu_memory_ecc_mode"
+"gpu_memory_free"
+"gpu_memory_used"
+"gpu_memory_total"
 ```
 
 ### Prometheus example config
