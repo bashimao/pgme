@@ -10,7 +10,7 @@ import (
     "log"
     "os"
     "os/exec"
-    "strings"
+    "strconv"
     "syscall"
     "os/signal"
     "path"
@@ -54,29 +54,28 @@ func healthz(w http.ResponseWriter, _ *http.Request) {
 // utilization.memory, memory.total, memory.free, memory.used
 func home(w http.ResponseWriter, r *http.Request) {
     metricList := []string {
-        "gpu.power.state",
-        "gpu.power.draw",
-        "gpu.power.limit",
+        "gpu_power_draw",
+        "gpu_power_limit",
 
-        "gpu.clock.shader.current",
-        "gpu.clock.shader.maximum",
-        "gpu.clock.streaming_multiprocessor.current",
-        "gpu.clock.streaming_multiprocessor.maximum",
-        "gpu.clock.memory.current",
-        "gpu.clock.memory.maximum",
+        "gpu_clock_shader_current",
+        "gpu_clock_shader_maximum",
+        "gpu_clock_streaming_multiprocessor_current",
+        "gpu_clock_streaming_multiprocessor_maximum",
+        "gpu_clock_memory_current",
+        "gpu_clock_memory_maximum",
 
-        "gpu.temperature.processor",
-        "gpu.temperature.memory",
-        "gpu.throttle_flags",
+        "gpu_temperature_processor",
+        "gpu_temperature_memory",
 
-        "gpu.utilization.processor",
-        "gpu.utilization.memory",
-        "gpu.utilization.fan",
+        "gpu_utilization_processor",
+        "gpu_utilization_memory",
+        "gpu_utilization_fan",
 
-        "gpu.memory.ecc_mode",
-        "gpu.memory.free",
-        "gpu.memory.used",
-        "gpu.memory.total",
+        "gpu_memory_ecc_mode",
+        "gpu_memory_free",
+        "gpu_memory_used",
+        "gpu_memory_total",
+        "gpu_count",
     }
 
     verInfo := make(map[string]string)
@@ -104,65 +103,77 @@ func home(w http.ResponseWriter, r *http.Request) {
     }
 }
 
+func isNumeric(s string) bool {
+    _, err := strconv.ParseFloat(s, 64)
+    return err == nil
+  }
 
-func metrics(response http.ResponseWriter, request *http.Request) {
-    out, err := exec.Command(
-        "nvidia-smi",
-        //                      power                         clock                                                                     temperature                        throttle                       utilization                                  memory
-        //                      0      1          2           0         1             2         3             4          5              0               1                  0                              0               1                  3         0                1           2           3
-        "--query-gpu=name,index,pstate,power.draw,power.limit,clocks.gr,clocks.max.gr,clocks.sm,clocks.max.sm,clocks.mem,clocks.max.mem,temperature.gpu,temperature.memory,clocks_throttle_reasons.active,utilization.gpu,utilization.memory,fan.speed,ecc.mode.current,memory.free,memory.used,memory.total",
-        "--format=csv,noheader,nounits",
-    ).Output()
-
-    if err != nil {
-        log.Printf("ERROR: %s\n", err)
-        return
-    }
-
-    csvReader := csv.NewReader(bytes.NewReader(out))
-    csvReader.TrimLeadingSpace = true
-    records, err := csvReader.ReadAll()
-
-    if err != nil {
-        log.Printf("%s\n", err)
-        return
-    }
-
+func parseCSV(records [][]string) string {
     metricList := []string {
-        "gpu.power.state",
-        "gpu.power.draw",
-        "gpu.power.limit",
+        "gpu_power_draw",
+        "gpu_power_limit",
 
-        "gpu.clock.shader.current",
-        "gpu.clock.shader.maximum",
-        "gpu.clock.streaming_multiprocessor.current",
-        "gpu.clock.streaming_multiprocessor.maximum",
-        "gpu.clock.memory.current",
-        "gpu.clock.memory.maximum",
-        
-        "gpu.temperature.processor",
-        "gpu.temperature.memory",
-        "gpu.throttle_flags",
+        "gpu_clock_shader_current",
+        "gpu_clock_shader_maximum",
+        "gpu_clock_streaming_multiprocessor_current",
+        "gpu_clock_streaming_multiprocessor_maximum",
+        "gpu_clock_memory_current",
+        "gpu_clock_memory_maximum",
 
-        "gpu.utilization.processor",
-        "gpu.utilization.memory",
-        "gpu.utilization.fan",
+        "gpu_temperature_processor",
+        "gpu_temperature_memory",
 
-        "gpu.memory.ecc_mode",
-        "gpu.memory.free",
-        "gpu.memory.used",
-        "gpu.memory.total",
+        "gpu_utilization_processor",
+        "gpu_utilization_memory",
+        "gpu_utilization_fan",
+
+        "gpu_memory_free",
+        "gpu_memory_used",
+        "gpu_memory_total",
     }
 
     result := ""
     for _, row := range records {
         name := fmt.Sprintf("%s[%s]", row[0], row[1])
         for idx, value := range row[2:] {
-            result = fmt.Sprintf("%s%s{gpu=\"%s\"} %s\n", result, metricList[idx], name, value)
+            if isNumeric(value) {
+                result = fmt.Sprintf("%s%s{gpu=\"%s\"} %s\n", result, metricList[idx], name, value)
+            }
+        }
+    }
+    return result
+}
+
+func metrics(response http.ResponseWriter, request *http.Request) {
+    out, err := exec.Command(
+        "nvidia-smi",
+        //                      power                  clock                                                                     temperature                        utilization                                  memory
+        //                      0          1           0         1             2         3             4          5              0               1                  0               1                  3         0           1           2
+        "--query-gpu=name,index,power.draw,power.limit,clocks.gr,clocks.max.gr,clocks.sm,clocks.max.sm,clocks.mem,clocks.max.mem,temperature.gpu,temperature.memory,utilization.gpu,utilization.memory,fan.speed,memory.free,memory.used,memory.total",
+        "--format=csv,noheader,nounits",
+    ).Output()
+
+    result := ""
+    gpu_count := 0
+
+    if err != nil {
+        log.Printf("ERROR: %s\n", err)
+    } else {
+        csvReader := csv.NewReader(bytes.NewReader(out))
+        csvReader.TrimLeadingSpace = true
+        records, err := csvReader.ReadAll()
+
+        gpu_count = len(records)
+        
+        if err != nil {
+            log.Printf("%s\n", err, len(records))
+        } else {
+            result = parseCSV(records)
         }
     }
 
-    fmt.Fprintf(response, strings.Replace(result, ".", "_", -1))
+    result = fmt.Sprintf("%s%s{} %d\n", result, "gpu_count", gpu_count)
+    fmt.Fprintf(response, result)
 }
 
 
