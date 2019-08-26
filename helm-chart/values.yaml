@@ -5,7 +5,7 @@
 updateStrategy: RollingUpdate
 
 image:
-  name: chhibber/pgme
+  name: bashimao/pgme
   tag: latest
   pullPolicy: Always
 
