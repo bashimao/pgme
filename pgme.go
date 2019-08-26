@@ -67,7 +67,7 @@ func home(w http.ResponseWriter, r *http.Request) {
 
         "gpu.temperature.processor",
         "gpu.temperature.memory",
-        "gpu.throttle_reason",
+        "gpu.throttle_flags",
 
         "gpu.utilization.processor",
         "gpu.utilization.memory",
@@ -142,7 +142,7 @@ func metrics(response http.ResponseWriter, request *http.Request) {
         
         "gpu.temperature.processor",
         "gpu.temperature.memory",
-        "gpu.throttle_reason",
+        "gpu.throttle_flags",
 
         "gpu.utilization.processor",
         "gpu.utilization.memory",
