@@ -89,7 +89,6 @@ Per GPU:
 "gpu_utilization_memory"
 "gpu_utilization_fan"
 
-"gpu_memory_ecc_mode"
 "gpu_memory_free"
 "gpu_memory_used"
 "gpu_memory_total"
